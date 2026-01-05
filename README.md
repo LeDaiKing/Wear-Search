@@ -4,8 +4,6 @@
 
 WearSearch is an AI-powered fashion image search system that uses CLIP embeddings and the Rocchio algorithm to enable iterative query refinement through user feedback.
 
-![WearSearch Architecture](https://via.placeholder.com/800x400/0F0F12/FF6B6B?text=WearSearch)
-
 ## Features
 
 ### Multi-modal Query Initialization
@@ -150,9 +148,6 @@ Set `NEXT_PUBLIC_API_URL` environment variable to point to your backend if not r
 - **Lucide React** - Beautiful icons
 - **TypeScript** - Type safety
 
-## License
-
-MIT License - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
