@@ -148,10 +148,14 @@ Set `NEXT_PUBLIC_API_URL` environment variable to point to your backend if not r
 - **Lucide React** - Beautiful icons
 - **TypeScript** - Type safety
 
+## Data Source
+Fashion Product Images and Text Dataset, from [Kaggle](https://www.kaggle.com/datasets/nirmalsankalana/fashion-product-text-images-dataset/data).
+
 
 ## Acknowledgments
 
 - OpenAI CLIP for the vision-language model
 - Facebook AI Research for Faiss
 - The Rocchio algorithm from classic IR research
+- Kaggle for the fashion product images and text dataset
 
