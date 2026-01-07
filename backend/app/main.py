@@ -27,6 +27,7 @@ from app.models import (
 from app.encoder import encoder
 from app.vector_store import vector_store
 from app.rocchio import rocchio
+from app.query_composer import query_composer, CompositionMethod
 from app.session_manager import session_manager
 
 
@@ -175,10 +176,12 @@ async def search_by_image(
 @app.post("/feedback/relevance", response_model=SearchResponse)
 async def relevance_feedback(request: RelevanceFeedbackRequest):
     """
-    Apply relevance feedback using Rocchio algorithm.
+    Apply relevance feedback using Rocchio algorithm and/or Natural Language Feedback.
     
-    User provides positive/negative feedback on retrieved images,
-    and the query is refined to improve results.
+    - Rocchio: Used for positive/negative image feedback (document-based)
+    - QueryComposer: Used for natural language feedback (semantic modification)
+    
+    These are applied separately as they work on different principles.
     """
     session = session_manager.get_session(request.session_id)
     if not session:
@@ -199,19 +202,40 @@ async def relevance_feedback(request: RelevanceFeedbackRequest):
     positive_vectors = vector_store.get_vectors(positive_ids) if positive_ids else None
     negative_vectors = vector_store.get_vectors(negative_ids) if negative_ids else None
     
-    # Handle text feedback if provided
-    text_vector = None
+    current_query = session.current_query_vector
+    refined_query = current_query.copy()
+    
+    # Step 1: Apply Rocchio for image-based relevance feedback
+    has_image_feedback = (positive_vectors is not None and len(positive_vectors) > 0) or \
+                         (negative_vectors is not None and len(negative_vectors) > 0)
+    
+    if has_image_feedback:
+        refined_query = rocchio.refine_query(
+            query_vector=refined_query,
+            relevant_vectors=positive_vectors if positive_vectors is not None and len(positive_vectors) > 0 else None,
+            non_relevant_vectors=negative_vectors if negative_vectors is not None and len(negative_vectors) > 0 else None
+        )
+    
+    # Step 2: Apply QueryComposer for natural language feedback (separate mechanism)
     if request.text_feedback:
         text_vector = encoder.encode_text(request.text_feedback)
-    
-    # Apply Rocchio algorithm
-    current_query = session.current_query_vector
-    refined_query = rocchio.refine_query(
-        query_vector=current_query,
-        relevant_vectors=positive_vectors if positive_vectors is not None and len(positive_vectors) > 0 else None,
-        non_relevant_vectors=negative_vectors if negative_vectors is not None and len(negative_vectors) > 0 else None,
-        text_modification_vector=text_vector
-    )
+        
+        # Use different composition method based on whether there's also image feedback
+        if has_image_feedback:
+            # Mixed feedback: use additive to layer NLF on top of Rocchio result
+            refined_query = query_composer.compose(
+                query_vector=refined_query,
+                text_vector=text_vector,
+                method=CompositionMethod.ADDITIVE
+            )
+        else:
+            # Pure NLF: use residual composition for stronger semantic modification
+            # This allows text like "navy color" to more strongly influence the query
+            refined_query = query_composer.compose(
+                query_vector=refined_query,
+                text_vector=text_vector,
+                method=CompositionMethod.RESIDUAL
+            )
     
     # Search with refined query
     image_ids, scores, metadata_list = vector_store.search(refined_query, request.top_k)

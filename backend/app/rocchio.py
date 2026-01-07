@@ -43,19 +43,18 @@ class RocchioAlgorithm:
         self,
         query_vector: np.ndarray,
         relevant_vectors: Optional[np.ndarray] = None,
-        non_relevant_vectors: Optional[np.ndarray] = None,
-        text_modification_vector: Optional[np.ndarray] = None,
-        text_weight: float = 0.3
+        non_relevant_vectors: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """
-        Refine query vector using Rocchio algorithm with optional text modification.
+        Refine query vector using pure Rocchio algorithm.
+        
+        Note: Natural Language Feedback is handled separately by QueryComposer,
+        as NLF requires different composition mechanisms than Rocchio.
         
         Args:
             query_vector: Original query vector
             relevant_vectors: Array of relevant document vectors (N x D)
             non_relevant_vectors: Array of non-relevant document vectors (M x D)
-            text_modification_vector: Optional text feedback vector
-            text_weight: Weight for text modification
             
         Returns:
             Refined query vector (normalized)
@@ -72,10 +71,6 @@ class RocchioAlgorithm:
         if non_relevant_vectors is not None and len(non_relevant_vectors) > 0:
             non_relevant_centroid = np.mean(non_relevant_vectors, axis=0)
             refined -= self.gamma * non_relevant_centroid
-        
-        # Apply text modification if provided
-        if text_modification_vector is not None:
-            refined = (1 - text_weight) * refined + text_weight * text_modification_vector
         
         # Normalize the result
         norm = np.linalg.norm(refined)
